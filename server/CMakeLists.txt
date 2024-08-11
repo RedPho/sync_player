@@ -9,7 +9,6 @@ find_package(SDL3_net REQUIRED)
 
 pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 
-
 add_executable(mpv
         simple.cpp)
 

@@ -45,9 +45,18 @@ int main(int argc, char *argv[]) {
     check_error(mpv_command(ctx, cmd));
 
     SDLNet_Init();
-    SDLNet_Address* address = SDLNet_ResolveHostname("127.0.0.1");
+
+    std::string ipString{"127.0.0.1"};
+    std::cout << "Enter host IP:";
+    std::cin >> ipString;
+    int port{1234};
+    std::cout << "Enter port:";
+    std::cin >> port;
+    const char *cip = ipString.c_str();
+
+    SDLNet_Address* address = SDLNet_ResolveHostname(cip);
     SDLNet_WaitUntilResolved(address, -1);
-    SDLNet_StreamSocket *socket = SDLNet_CreateClient(address, 1234);
+    SDLNet_StreamSocket *socket = SDLNet_CreateClient(address, port);
 
     if (SDLNet_WaitUntilConnected(socket, -1) < 1) {
         std::cout << "couldn't connect" << SDLNet_GetConnectionStatus(socket);
