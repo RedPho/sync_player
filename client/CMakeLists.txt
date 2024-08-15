@@ -21,12 +21,12 @@ else()
     pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 endif()
 
-add_executable(mpv simple.cpp)
+add_executable(sync_player_client main.cpp)
 
 if(WIN32)
     # Link libraries for Windows
-    target_link_libraries(mpv ${LIBMPV_LIBRARIES} SDL3::SDL3 SDL3_net::SDL3_net)
+    target_link_libraries(sync_player_client ${LIBMPV_LIBRARIES} SDL3::SDL3 SDL3_net::SDL3_net)
 else()
     # Link libraries for native (Linux) builds
-    target_link_libraries(mpv PkgConfig::MPV SDL3::SDL3 SDL3_net::SDL3_net)
+    target_link_libraries(sync_player_client PkgConfig::MPV SDL3::SDL3 SDL3_net::SDL3_net)
 endif()

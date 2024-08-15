@@ -27,12 +27,12 @@ else()
     pkg_check_modules(MPV REQUIRED IMPORTED_TARGET mpv)
 endif()
 
-add_executable(mpv simple.cpp)
+add_executable(sync_player_server main.cpp)
 
 if(CMAKE_CROSSCOMPILING)
     # Link libraries for cross-compiling
-    target_link_libraries(mpv ${MPV_LIBRARY} SDL3::SDL3 SDL3_net::SDL3_net)
+    target_link_libraries(sync_player_server ${MPV_LIBRARY} SDL3::SDL3 SDL3_net::SDL3_net)
 else()
     # Link libraries for native builds
-    target_link_libraries(mpv PkgConfig::MPV SDL3::SDL3 SDL3_net::SDL3_net)
+    target_link_libraries(sync_player_server PkgConfig::MPV SDL3::SDL3 SDL3_net::SDL3_net)
 endif()
