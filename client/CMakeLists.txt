@@ -7,20 +7,14 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(SDL3 REQUIRED)
 find_package(SDL3_net REQUIRED)
 
-if(CMAKE_CROSSCOMPILING)
-    # Cross-compilation settings
-    set(CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32)
+if(WIN32)
 
-    # Include and library paths for cross-compiling
-    include_directories(/usr/x86_64-w64-mingw32/include)
-    link_directories(/usr/x86_64-w64-mingw32/lib)
+    # Include and library paths for Windows (64-bit)
+    include_directories("C:/Program Files (x86)/SDL3/include" "C:/Program Files (x86)/SDL3_net/include" "C:/Program Files (x86)/Libmpv/include")
+    link_directories("C:/Program Files (x86)/SDL3/lib" "C:/Program Files (x86)/SDL3_net/lib" "C:/Program Files (x86)/Libmpv")
 
-    # Find and link MPV library
-    find_library(MPV_LIBRARY NAMES mpv HINTS /usr/x86_64-w64-mingw32/lib)
-
-    if(NOT MPV_LIBRARY)
-        message(FATAL_ERROR "Could not find libmpv in the specified paths.")
-    endif()
+    # Manually specify the libmpv library
+    set(LIBMPV_LIBRARIES "C:/Program Files (x86)/Libmpv/libmpv.dll.a")
 else()
     # For native (Linux) builds
     find_package(PkgConfig REQUIRED)
@@ -29,10 +23,10 @@ endif()
 
 add_executable(mpv simple.cpp)
 
-if(CMAKE_CROSSCOMPILING)
-    # Link libraries for cross-compiling
-    target_link_libraries(mpv ${MPV_LIBRARY} SDL3::SDL3 SDL3_net::SDL3_net)
+if(WIN32)
+    # Link libraries for Windows
+    target_link_libraries(mpv ${LIBMPV_LIBRARIES} SDL3::SDL3 SDL3_net::SDL3_net)
 else()
-    # Link libraries for native builds
+    # Link libraries for native (Linux) builds
     target_link_libraries(mpv PkgConfig::MPV SDL3::SDL3 SDL3_net::SDL3_net)
 endif()

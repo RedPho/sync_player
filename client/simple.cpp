@@ -1,8 +1,3 @@
-// Build with: gcc -o simple simple.c `pkg-config --libs --cflags mpv`
-
-#include <cstddef>
-#include <cstdlib>
-
 #include <mpv/client.h>
 #include <string>
 #include <iostream>
@@ -47,10 +42,10 @@ int main(int argc, char *argv[]) {
     SDLNet_Init();
 
     std::string ipString{"127.0.0.1"};
-    std::cout << "Enter host IP:";
+    std::cout << "Enter host IP:\n";
     std::cin >> ipString;
     int port{1234};
-    std::cout << "Enter port:";
+    std::cout << "Enter port:\n";
     std::cin >> port;
     const char *cip = ipString.c_str();
 
@@ -69,7 +64,7 @@ int main(int argc, char *argv[]) {
         if (SDLNet_ReadFromStreamSocket(socket, &networkData, sizeof(networkData)) > 1){
             mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
             mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
-            std::cout << "data came:" << "\n";
+            std::cout << "data came\n";
             std::cout << "pause:" << networkData.paused << "\n";
             std::cout << "timepos:" << networkData.timePos << "\n";
             std::cout.flush();
