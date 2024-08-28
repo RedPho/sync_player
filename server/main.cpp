@@ -6,6 +6,7 @@
 #include <mutex>
 #include <asio.hpp>
 #include <mpv/client.h>
+#include <set>
 #include "networkData.hh"
 
 static inline void check_error(int status)
@@ -16,11 +17,24 @@ static inline void check_error(int status)
     }
 }
 
+
+std::set<std::string> allowed_ips = {"192.168.1.1", "10.0.0.1", "127.0.0.1"};
+
 void handle_accept(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp::socket*>& allClients, std::mutex& clientMutex, asio::ip::tcp::socket* client, const asio::error_code& error, asio::io_context& io_context)
 {
     if (!error) {
+        std::string remote_ip = client->remote_endpoint().address().to_string();
+
+        // Check if the IP is allowed
+        if (allowed_ips.find(remote_ip) == allowed_ips.end()) {
+            std::cout << "Connection from disallowed IP: " << remote_ip << "\n";
+            delete client;
+            return;
+        }
+
         std::lock_guard<std::mutex> lock(clientMutex);
-        std::cout << "TCP client connected." << client->remote_endpoint().address().to_string() << "\n";
+        std::cout << "TCP client connected: " << remote_ip << "\n";
+        std::cout.flush();
         allClients.push_back(client);
 
         // Start accepting the next client
@@ -28,9 +42,12 @@ void handle_accept(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp:
         acceptor.async_accept(*client, std::bind(handle_accept, std::ref(acceptor), std::ref(allClients), std::ref(clientMutex), client, std::placeholders::_1, std::ref(io_context)));
     } else {
         std::cerr << "Accept error: " << error.message() << "\n";
+        std::cout.flush();
+
         delete client;
     }
 }
+
 
 int main(int argc, char *argv[]) {
     mpv_handle *ctx = mpv_create();
@@ -48,6 +65,17 @@ int main(int argc, char *argv[]) {
         int port = 1234;
         std::cout << "Enter port:\n";
         std::cin >> port;
+
+        std::string whitelistIp{};
+        while (true) {
+            std::cout << "Enter IP address to add to whitelist or 'q' to continue:\n";
+            std::cin >> whitelistIp;
+            if (whitelistIp == "q") {
+                break;
+            }
+            allowed_ips.insert(whitelistIp);
+        }
+
 
         asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port));
 
@@ -113,9 +141,10 @@ int main(int argc, char *argv[]) {
                                           } else {
                                               std::cout << "Data sent\n";
                                           }
+                                          std::cout.flush();
                                       });
                 }
-                std::cout << allClients.size() << "boyutunda allClients.\n";
+                std::cout << allClients.size() << " boyutunda allClients.\n";
                 std::cout.flush();
             }
 
