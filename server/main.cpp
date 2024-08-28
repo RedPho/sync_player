@@ -20,7 +20,7 @@ void handle_accept(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp:
 {
     if (!error) {
         std::lock_guard<std::mutex> lock(clientMutex);
-        std::cout << "TCP client connected.\n";
+        std::cout << "TCP client connected." << client->remote_endpoint().address().to_string() << "\n";
         allClients.push_back(client);
 
         // Start accepting the next client
@@ -115,6 +115,8 @@ int main(int argc, char *argv[]) {
                                           }
                                       });
                 }
+                std::cout << allClients.size() << "boyutunda allClients.\n";
+                std::cout.flush();
             }
 
             if (event->event_id == MPV_EVENT_SHUTDOWN) {
