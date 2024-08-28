@@ -1,9 +1,10 @@
 #include <mpv/client.h>
 #include <string>
 #include <iostream>
-#include <SDL3_net/SDL_net.h>
+#include <asio.hpp>
 #include "networkData.hh"
 
+using asio::ip::tcp;
 
 static inline void check_error(int status)
 {
@@ -14,32 +15,21 @@ static inline void check_error(int status)
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cout << "pass a single media file as argument\n";
-        return 1;
-    }
-
     mpv_handle *ctx = mpv_create();
     if (!ctx) {
         std::cout << "failed creating context\n";
         return 1;
     }
 
-    // Enable default key bindings, so the user can actually interact with
-    // the player (and e.g. close the window).
+    // Enable default key bindings
     check_error(mpv_set_option_string(ctx, "input-default-bindings", "yes"));
     mpv_set_option_string(ctx, "input-vo-keyboard", "yes");
     int val = 1;
     check_error(mpv_set_option(ctx, "osc", MPV_FORMAT_FLAG, &val));
-
-    // Done setting up options.
     check_error(mpv_initialize(ctx));
 
-    // Play this file.
-    const char *cmd[] = {"loadfile", argv[1], NULL};
-    check_error(mpv_command(ctx, cmd));
-
-    SDLNet_Init();
+    // Set up ASIO
+    asio::io_context io_context;
 
     std::string ipString{"127.0.0.1"};
     std::cout << "Enter host IP:\n";
@@ -47,32 +37,39 @@ int main(int argc, char *argv[]) {
     int port{1234};
     std::cout << "Enter port:\n";
     std::cin >> port;
-    const char *cip = ipString.c_str();
 
-    SDLNet_Address* address = SDLNet_ResolveHostname(cip);
-    SDLNet_WaitUntilResolved(address, -1);
-    SDLNet_StreamSocket *socket = SDLNet_CreateClient(address, port);
+    tcp::resolver resolver(io_context);
+    tcp::resolver::results_type endpoints = resolver.resolve(ipString, std::to_string(port));
+    tcp::socket socket(io_context);
+    asio::connect(socket, endpoints);
 
-    if (SDLNet_WaitUntilConnected(socket, -1) < 1) {
-        std::cout << "couldn't connect" << SDLNet_GetConnectionStatus(socket);
-        return 0;
+    std::cout << "connected\n";
+
+    if (argc == 2) {
+        const char *cmd[] = {"loadfile", argv[1], NULL};
+        check_error(mpv_command(ctx, cmd));
+    } else {
+        const char *idle_cmd[] = {"loadfile", "no", NULL};
+        check_error(mpv_command(ctx, idle_cmd));
+        const char *force_window_cmd[] = {"set", "force-window", "yes", NULL};
+        check_error(mpv_command(ctx, force_window_cmd));
+        std::cout << "No file provided, starting with an empty mpv window.\n";
     }
 
-    // Let it play, and wait until the user quits.
+    asio::streambuf buffer;
     NetworkData networkData{0, 0.0};
     while (true) {
-        if (SDLNet_ReadFromStreamSocket(socket, &networkData, sizeof(networkData)) > 1){
-            mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
-            mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
-            std::cout << "data came\n";
-            std::cout << "pause:" << networkData.paused << "\n";
-            std::cout << "timepos:" << networkData.timePos << "\n";
-            std::cout.flush();
-        }
+        asio::read(socket, buffer, asio::transfer_exactly(sizeof(networkData)));
+        std::istream input(&buffer);
+        input.read(reinterpret_cast<char*>(&networkData), sizeof(networkData));
+
+        mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
+        mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
+        std::cout << "data came\n";
+        std::cout << "pause:" << networkData.paused << "\n";
+        std::cout << "timepos:" << networkData.timePos << "\n";
 
         mpv_event *event = mpv_wait_event(ctx, 0);
- /*     std::cout << "event: " << mpv_event_name(event->event_id) << "\n";
-        std::cout.flush();*/
         if (event->event_id == MPV_EVENT_SHUTDOWN) {
             break;
         }
