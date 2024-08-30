@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <asio.hpp>
+#include <thread>
 #include "networkData.hh"
 
 using asio::ip::tcp;
@@ -11,6 +12,22 @@ static inline void check_error(int status)
     if (status < 0) {
         printf("mpv API error: %s\n", mpv_error_string(status));
         exit(1);
+    }
+}
+
+void connectToServer(tcp::socket& socket, const std::string& ipString, int port, asio::io_context& io_context) {
+    while (true) {
+        try {
+            tcp::resolver resolver(io_context);
+            tcp::resolver::results_type endpoints = resolver.resolve(ipString, std::to_string(port));
+            asio::connect(socket, endpoints);
+            std::cout << "Connected to server\n";
+            return;
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to connect: " << e.what() << "\n";
+            std::cout << "Reconnecting in 5 seconds...\n";
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
     }
 }
 
@@ -38,10 +55,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Enter port:\n";
     std::cin >> port;
 
-    tcp::resolver resolver(io_context);
-    tcp::resolver::results_type endpoints = resolver.resolve(ipString, std::to_string(port));
     tcp::socket socket(io_context);
-    asio::connect(socket, endpoints);
+    connectToServer(socket, ipString, port, io_context);
 
     std::cout << "connected\n";
 
@@ -58,7 +73,13 @@ int main(int argc, char *argv[]) {
 
     NetworkData networkData{0, 0.0};
     while (true) {
-        asio::read(socket, asio::buffer(&networkData, sizeof(networkData)));
+        try{
+            asio::read(socket, asio::buffer(&networkData, sizeof(networkData)));
+        } catch (std::exception& e) {
+            std::cerr << "Connection lost: " << e.what() << "\n";
+            std::cout << "Attempting to reconnect...\n";
+            connectToServer(socket, ipString, port, io_context);
+        }
 
         mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
         mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
