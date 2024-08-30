@@ -27,3 +27,5 @@ path_to_client_executable_folder/sync_player_client video_link
 1. Android and ios support(far future)  
 2. User friendly interface  
 3. Separate host from server. (This way I can use a server so that users don't need to configure their own servers and also everyone can use it)
+4. Chat, reactions
+5. Pointer: A user can point to something visual in the video.
