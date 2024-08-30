@@ -35,6 +35,7 @@ void accept_loop(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp::s
             // Check if the IP is allowed
             if (allowed_ips.find(remote_ip) == allowed_ips.end()) {
                 std::cout << "Connection from disallowed IP: " << remote_ip << "\n";
+                client->close();
                 delete client;
                 continue;
             }
@@ -129,10 +130,29 @@ int main(int argc, char *argv[]) {
                 networkData.timePos = timePosData;
 
                 // Lock the mutex to safely access the shared client list
-                std::lock_guard<std::mutex> lock(clientMutex);
-                for (asio::ip::tcp::socket* socket : allClients) {
-                    std::error_code ignored_error;
-                    asio::write(*socket, asio::buffer(&networkData, sizeof(networkData)), ignored_error);
+                try {
+                    std::lock_guard<std::mutex> lock(clientMutex);
+                    for (asio::ip::tcp::socket *socket: allClients) {
+                        std::error_code error;
+                        asio::write(*socket, asio::buffer(&networkData, sizeof(networkData)), error);
+                        if (!error) {
+                            std::cout << "data sent\n";
+
+                        }else {
+                            std::cout << "error:" << error.message() << "\n";
+                            socket->close();
+                            // Remove the socket if something wrong with it
+                            auto it = std::find(allClients.begin(), allClients.end(),
+                                                socket);
+
+                            if (it != allClients.end()) {
+                                allClients.erase(it);
+                                std::cout << "erased\n";
+                            }
+                        }
+                    }
+                } catch (std::exception& e) {
+                    std::cout << e.what();
                 }
                 std::cout << allClients.size() << " boyutunda allClients.\n";
             }
