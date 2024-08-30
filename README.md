@@ -20,6 +20,8 @@ path_to_client_executable_folder/sync_player_server
 The server and client can learn their public IPv4 easily by searching online:  
 Open your favorite search engine(Google, DuckDuckGo etc) and search: "What is my ip".  
 Open the server first. It will ask for a port. Type the port as you wish.  
+Note: Your router need to forward this port to your local ip address(to your computer).  
+If you don't know what port forwarding is, you can search it online. It is not that complex.  
 Then it will ask for ip to whitelist.  
 Then, the client must enter the IP and port of the server.  
 It connects, and the server sends the time and pause data when the server user seeks or pauses the media.  
