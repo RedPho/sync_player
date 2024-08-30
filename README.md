@@ -27,7 +27,7 @@ Note: Your router need to forward this port to your local ip address(to your com
 If you don't know what port forwarding is, you can search it online. It is not that complex.  
 
 ### Continue
-Then it will ask for ip to whitelist: you need to enter IPv4 of the client.  
+It will ask for ip to whitelist: you need to enter IPv4 of the client.  
 Then, the client must enter the IPv4 and port of the server.  
 It connects, and the server sends the time and pause data when the server user seeks or pauses the media.  
 You can also start the server and client like this to start the video immediately:  
