@@ -56,12 +56,9 @@ int main(int argc, char *argv[]) {
         std::cout << "No file provided, starting with an empty mpv window.\n";
     }
 
-    asio::streambuf buffer;
     NetworkData networkData{0, 0.0};
     while (true) {
-        asio::read(socket, buffer, asio::transfer_exactly(sizeof(networkData)));
-        std::istream input(&buffer);
-        input.read(reinterpret_cast<char*>(&networkData), sizeof(networkData));
+        asio::read(socket, asio::buffer(&networkData, sizeof(networkData)));
 
         mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
         mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));

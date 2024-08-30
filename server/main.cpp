@@ -20,31 +20,36 @@ static inline void check_error(int status)
 
 std::set<std::string> allowed_ips = {"192.168.1.1", "10.0.0.1", "127.0.0.1"};
 
-void handle_accept(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp::socket*>& allClients, std::mutex& clientMutex, asio::ip::tcp::socket* client, const asio::error_code& error, asio::io_context& io_context)
+void accept_loop(asio::ip::tcp::acceptor& acceptor, std::vector<asio::ip::tcp::socket*>& allClients, std::mutex& clientMutex, asio::io_context& io_context)
 {
-    if (!error) {
-        std::string remote_ip = client->remote_endpoint().address().to_string();
+    while(true) {
+    auto* client = new asio::ip::tcp::socket(io_context);
 
-        // Check if the IP is allowed
-        if (allowed_ips.find(remote_ip) == allowed_ips.end()) {
-            std::cout << "Connection from disallowed IP: " << remote_ip << "\n";
+        try {
+            // Accept the connection
+            acceptor.accept(*client);
+
+            // Retrieve the remote IP address
+            std::string remote_ip = client->remote_endpoint().address().to_string();
+
+            // Check if the IP is allowed
+            if (allowed_ips.find(remote_ip) == allowed_ips.end()) {
+                std::cout << "Connection from disallowed IP: " << remote_ip << "\n";
+                delete client;
+                continue;
+            }
+
+            // Lock the mutex before modifying the vector
+            {
+                std::lock_guard<std::mutex> lock(clientMutex);
+                std::cout << "TCP client connected: " << remote_ip << "\n";
+                allClients.push_back(client);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Exception: " << e.what() << "\n";
             delete client;
-            return;
         }
 
-        std::lock_guard<std::mutex> lock(clientMutex);
-        std::cout << "TCP client connected: " << remote_ip << "\n";
-        std::cout.flush();
-        allClients.push_back(client);
-
-        // Start accepting the next client
-        client = new asio::ip::tcp::socket(io_context);
-        acceptor.async_accept(*client, std::bind(handle_accept, std::ref(acceptor), std::ref(allClients), std::ref(clientMutex), client, std::placeholders::_1, std::ref(io_context)));
-    } else {
-        std::cerr << "Accept error: " << error.message() << "\n";
-        std::cout.flush();
-
-        delete client;
     }
 }
 
@@ -60,7 +65,6 @@ int main(int argc, char *argv[]) {
     std::mutex clientMutex;
 
     try {
-        asio::io_context io_context;
 
         int port = 1234;
         std::cout << "Enter port:\n";
@@ -76,12 +80,10 @@ int main(int argc, char *argv[]) {
             allowed_ips.insert(whitelistIp);
         }
 
-
+        asio::io_context io_context;
         asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port));
+        std::thread accept_thread(accept_loop, std::ref(acceptor), std::ref(allClients), std::ref(clientMutex), std::ref(io_context));
 
-        // Start accepting clients asynchronously
-        asio::ip::tcp::socket* initial_client = new asio::ip::tcp::socket(io_context);
-        acceptor.async_accept(*initial_client, std::bind(handle_accept, std::ref(acceptor), std::ref(allClients), std::ref(clientMutex), initial_client, std::placeholders::_1, std::ref(io_context)));
 
         // Enable default key bindings, so the user can actually interact with
         // the player (and e.g. close the window).
@@ -107,11 +109,6 @@ int main(int argc, char *argv[]) {
             std::cout << "No file provided, starting with an empty mpv window.\n";
         }
 
-        // Run io_context in a separate thread
-        std::thread io_thread([&io_context]() {
-            io_context.run();
-        });
-
         // Let it play, and wait until the user quits.
         const int UNPAUSED = 0;
         const int PAUSED = 1;
@@ -134,18 +131,10 @@ int main(int argc, char *argv[]) {
                 // Lock the mutex to safely access the shared client list
                 std::lock_guard<std::mutex> lock(clientMutex);
                 for (asio::ip::tcp::socket* socket : allClients) {
-                    asio::async_write(*socket, asio::buffer(&networkData, sizeof(networkData)),
-                                      [](const asio::error_code& error, std::size_t) {
-                                          if (error) {
-                                              std::cerr << "Write error: " << error.message() << "\n";
-                                          } else {
-                                              std::cout << "Data sent\n";
-                                          }
-                                          std::cout.flush();
-                                      });
+                    std::error_code ignored_error;
+                    asio::write(*socket, asio::buffer(&networkData, sizeof(networkData)), ignored_error);
                 }
                 std::cout << allClients.size() << " boyutunda allClients.\n";
-                std::cout.flush();
             }
 
             if (event->event_id == MPV_EVENT_SHUTDOWN) {
@@ -156,7 +145,7 @@ int main(int argc, char *argv[]) {
         // Cleanup
         acceptor.close();  // Close the acceptor to stop the accept loop
         io_context.stop(); // Stop the io_context to break out of the event loop
-        io_thread.join();  // Join the thread to make sure it has finished
+        accept_thread.join();  // Join the thread to make sure it has finished
 
         for (asio::ip::tcp::socket* socket : allClients) {
             delete socket;
