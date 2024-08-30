@@ -27,7 +27,7 @@ path_to_client_executable_folder/sync_player_client path_to_video
 ```commandline
 path_to_server_executable_folder/sync_player_server path_to_video
 ```
-or if you wish to play videos online(youtube etc.)
+or if you wish to play videos online (YouTube, etc.):  
 ```commandline
 path_to_client_executable_folder/sync_player_client video_link
 ```
@@ -36,8 +36,8 @@ path_to_server_executable_folder/sync_player_server video_link
 ```
 
 # TODO
-1. Android and ios support(far future)  
-2. User friendly interface  
-3. Separate host from server. (This way I can use a server so that users don't need to configure their own servers and also everyone can use it)
+1. Android and iOS support (far future)
+2. User-friendly interface  
+3. Separate host from server (This way, I can use a server so that users don't need to configure their own servers, and everyone can use it)
 4. Chat, reactions
 5. Pointer: A user can point to something visual in the video.
