@@ -1,6 +1,7 @@
 This is a program to watch local videos(or online videos if you have the link of the video) together with friends in sync.  
-I created this project because screen sharing alternative doesn't always work nice(because of the internet speed or limitations of the platforms)
-# Build (Works for Linux and Windows):
+I created this project because screen sharing alternative doesn't always work nice(because of the internet speed or limitations of the platforms)  
+Works for Linux and Windows
+# Build:
 Just open the command line in client or server folder and type commands:
 ```commandline
 mkdir build
@@ -21,3 +22,8 @@ or if you wish to play videos online(youtube etc.)
 ```commandline
 path_to_client_executable_folder/sync_player_client video_link
 ```
+
+# TODO
+1. Android and ios support(far future)  
+2. User friendly interface  
+3. Separate host from server. (This way I can use a server so that users don't need to configure their own servers and also everyone can use it)
