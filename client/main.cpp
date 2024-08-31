@@ -75,17 +75,18 @@ int main(int argc, char *argv[]) {
     while (true) {
         try{
             asio::read(socket, asio::buffer(&networkData, sizeof(networkData)));
+            mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
+            mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
+            std::cout << "data came\n";
+            std::cout << "pause:" << networkData.paused << "\n";
+            std::cout << "timepos:" << networkData.timePos << "\n";
+
         } catch (std::exception& e) {
             std::cerr << "Connection lost: " << e.what() << "\n";
             std::cout << "Attempting to reconnect...\n";
             connectToServer(socket, ipString, port, io_context);
         }
 
-        mpv_set_property(ctx, "pause", MPV_FORMAT_FLAG, (void *) &(networkData.paused));
-        mpv_set_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &(networkData.timePos));
-        std::cout << "data came\n";
-        std::cout << "pause:" << networkData.paused << "\n";
-        std::cout << "timepos:" << networkData.timePos << "\n";
 
         mpv_event *event = mpv_wait_event(ctx, 0);
         if (event->event_id == MPV_EVENT_SHUTDOWN) {
